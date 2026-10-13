@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess Realm</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: #f3ece1;
+    color: #3b2f25;
+    min-width: 960px;
+    min-height: 100vh;
+  }
+  .hidden { display: none !important; }
+
+  /* ---------- 共用按鈕 ---------- */
+  .btn {
+    display: inline-block;
+    padding: 10px 22px;
+    font-size: 16px;
+    font-family: inherit;
+    color: #fff;
+    background: #8b5a2b;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s, transform .15s, box-shadow .15s;
+    box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  }
+  .btn:hover { background: #6f4520; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,.25); }
+  .btn:active { transform: translateY(0); }
+  .btn.secondary { background: #a89580; }
+  .btn.secondary:hover { background: #8c7a66; }
+  .btn.danger { background: #b23a2a; }
+  .btn.danger:hover { background: #8e2d20; }
+  .btn.big { font-size: 20px; padding: 14px 36px; min-width: 240px; }
+  .btn:disabled, .btn:disabled:hover {
+    background: #cfc4b6; color: #f7f2ea; cursor: not-allowed; transform: none; box-shadow: none;
+  }
+  /* 低調的小按鈕（快速通關用） */
+  .btn.subtle {
+    font-size: 13px; padding: 6px 14px;
+    background: transparent; color: #9a8670;
+    border: 1px dashed #c4b29a; box-shadow: none;
+  }
+  .btn.subtle:hover { background: #ece2d3; color: #6b5844; box-shadow: none; }
+  .quick-clear-wrap { text-align: center; margin-top: 36px; }
+
+  /* 開局設定視窗的選項 */
+  .setup-group { margin-bottom: 18px; }
+  .setup-label { font-weight: bold; margin-bottom: 8px; color: #5c3a1e; }
+  .opt-row { display: flex; gap: 10px; justify-content: center; }
+  .opt {
+    font-family: inherit; font-size: 16px;
+    padding: 9px 18px; min-width: 90px;
+    background: #fff; color: #5c3a1e;
+    border: 2px solid #d9c6aa; border-radius: 8px;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .opt:hover { border-color: #b58863; background: #fbf3e6; }
+  .opt.selected {
+    background: #8b5a2b; color: #fff; border-color: #5c3a1e;
+    box-shadow: 0 0 0 3px rgba(139,90,43,.3);
+  }
+  .opt.selected::before { content: '✔ '; }
+  .setup-desc { font-size: 14px; color: #7a6450; margin-top: 8px; min-height: 2.6em; }
+
+  /* 密碼輸入 */
+  .pw-input {
+    display: block; margin: 12px auto 0; width: 220px;
+    font-size: 18px; padding: 8px 12px; text-align: center;
+    border: 2px solid #d9c6aa; border-radius: 8px; font-family: inherit;
+  }
+  .pw-input:focus { outline: none; border-color: #8b5a2b; }
+  .pw-error { color: #d61f1f; font-weight: bold; margin-top: 8px; }
+
+  /* ---------- 畫面 ---------- */
+  .screen { display: none; padding: 32px 24px; max-width: 1100px; margin: 0 auto; }
+  .screen.active { display: block; }
+  .screen-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .screen-header h2 { margin: 0; font-size: 28px; }
+
+  /* 首頁 */
+  #screen-home { text-align: center; padding-top: 80px; }
+  #screen-home h1 { font-size: 64px; margin: 0 0 8px; letter-spacing: 8px; color: #5c3a1e; }
+  #screen-home .subtitle { font-size: 18px; color: #7a6450; margin-bottom: 12px; }
+  #screen-home .deco { font-size: 44px; letter-spacing: 10px; color: #8b5a2b; margin: 18px 0 40px; }
+  .home-buttons { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+
+  /* 關卡卡片／故事卡片 */
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card {
+    background: #fffaf2;
+    border: 2px solid #d9c6aa;
+    border-radius: 12px;
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+    position: relative;
+    min-height: 210px;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 8px 18px rgba(0,0,0,.15); border-color: #b58863; }
+  .card .lv { font-size: 14px; color: #8b5a2b; font-weight: bold; }
+  .card .sym { font-size: 64px; line-height: 1.1; text-align: center; margin: 6px 0; }
+  .card .name { font-size: 20px; font-weight: bold; text-align: center; }
+  .card .desc { font-size: 14px; color: #6b5844; margin-top: 8px; line-height: 1.6; }
+  .card .badge {
+    position: absolute; top: 14px; right: 14px;
+    font-size: 13px; padding: 3px 10px; border-radius: 12px;
+    background: #e3d8c8; color: #7a6450;
+  }
+  .card .badge.done { background: #3f8f4f; color: #fff; }
+  .card.locked { cursor: not-allowed; background: #ece5da; }
+  .card.locked:hover { transform: none; box-shadow: none; border-color: #d9c6aa; }
+  .card.locked .sym { filter: grayscale(1); opacity: .35; }
+  .card .lock-text { text-align: center; color: #8c7a66; margin-top: 10px; font-size: 15px; }
+
+  /* ---------- 棋盤畫面 ---------- */
+  .game-layout { display: flex; gap: 28px; justify-content: center; align-items: flex-start; }
+  #board {
+    width: 620px; height: 620px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 10px solid #5c3a1e;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .sq { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sq.light { background: #f0d9b5; }
+  .sq.dark { background: #b58863; }
+  .sq.last.light { background: #f6f08a; }
+  .sq.last.dark { background: #dccb52; }
+  .sq.check { background: radial-gradient(circle, #ff4b4b 0%, #d61f1f 60%, #9e1010 100%) !important; }
+  .sq.sel { z-index: 2; box-shadow: inset 0 0 0 4px #39ff14, 0 0 14px 4px rgba(57,255,20,.85); }
+  .sq.cap { z-index: 1; box-shadow: inset 0 0 0 4px #ff6a00, inset 0 0 18px 4px rgba(255,60,0,.7); }
+  .sq .dot {
+    position: absolute; width: 24%; height: 24%; border-radius: 50%;
+    background: radial-gradient(circle, #b6ff9e 0%, #39d353 70%);
+    box-shadow: 0 0 10px 3px rgba(80,255,80,.8);
+    pointer-events: none;
+  }
+  .piece { font-size: 60px; line-height: 1; pointer-events: none; position: relative; z-index: 3; }
+  .piece.w { color: #fffdf6; text-shadow: 0 0 2px #000, 0 0 2px #000, 1px 1px 3px rgba(0,0,0,.6); }
+  .piece.b { color: #1a1410; text-shadow: 0 0 2px rgba(255,255,255,.55); }
+  .coord { position: absolute; font-size: 12px; font-weight: bold; pointer-events: none; z-index: 4; }
+  .coord.rank { top: 3px; left: 4px; }
+  .coord.file { bottom: 2px; right: 5px; }
+  .sq.light .coord { color: #a5784f; }
+  .sq.dark .coord { color: #f0d9b5; }
+
+  .panel {
+    width: 260px;
+    background: #fffaf2;
+    border: 2px solid #d9c6aa;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .panel .row { margin-bottom: 16px; }
+  .panel .label { font-size: 13px; color: #8c7a66; margin-bottom: 4px; }
+  .panel .value { font-size: 18px; font-weight: bold; }
+  .turn-box { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: bold; }
+  .chip { width: 30px; height: 30px; border-radius: 6px; border: 2px solid #3b2f25; display: inline-block; }
+  .chip.w { background: #fff; }
+  .chip.b { background: #1a1410; }
+  .thinking { color: #8b5a2b; font-size: 15px; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  .check-warn {
+    background: #d61f1f; color: #fff; font-size: 22px; font-weight: bold;
+    text-align: center; padding: 10px; border-radius: 8px;
+    box-shadow: 0 0 12px rgba(214,31,31,.7);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 50% { box-shadow: 0 0 22px rgba(214,31,31,1); } }
+  .panel .hint { font-size: 13px; color: #8c7a66; line-height: 1.6; }
+  .panel .btn-col { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .panel .opp-desc { font-size: 14px; color: #6b5844; line-height: 1.6; }
+
+  /* ---------- 故事閱讀頁 ---------- */
+  .story-page { max-width: 760px; margin: 0 auto; background: #fffaf2; border: 2px solid #d9c6aa; border-radius: 12px; padding: 32px 40px; }
+  .story-page .story-sym { font-size: 80px; text-align: center; line-height: 1.1; }
+  .story-page h2 { text-align: center; margin: 8px 0 4px; font-size: 28px; }
+  .story-page .story-sub { text-align: center; color: #8c7a66; margin-bottom: 24px; }
+  .story-page p { font-size: 17px; line-height: 1.95; text-indent: 2em; margin: 0 0 14px; }
+  .story-note { background: #f3e6cf; border-left: 5px solid #8b5a2b; padding: 14px 18px; border-radius: 6px; margin-top: 22px; line-height: 1.8; font-size: 16px; }
+  .story-actions { display: flex; gap: 14px; justify-content: center; margin-top: 28px; }
+
+  /* 故事館分頁標籤 */
+  .tabs { display: flex; gap: 6px; margin-bottom: 22px; border-bottom: 3px solid #d9c6aa; }
+  .tab {
+    font-family: inherit; font-size: 17px; font-weight: bold;
+    padding: 10px 26px; margin-bottom: -3px;
+    background: #ece2d3; color: #8c7a66;
+    border: 3px solid #d9c6aa; border-bottom: none; border-radius: 10px 10px 0 0;
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .tab:hover { background: #f6eee2; color: #5c3a1e; }
+  .tab.active { background: #fffaf2; color: #5c3a1e; border-color: #8b5a2b; border-bottom: 3px solid #fffaf2; }
+  .card .chap-title { font-size: 20px; font-weight: bold; text-align: center; margin: 18px 0 4px; }
+  .card .chap-icon { font-size: 44px; text-align: center; line-height: 1.2; margin-top: 10px; }
+
+  /* ---------- 彈窗 ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(20, 12, 5, .55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-box {
+    background: #fffaf2;
+    border-radius: 14px;
+    padding: 28px 32px;
+    min-width: 380px; max-width: 520px;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+  }
+  .modal-box h3 { margin: 0 0 12px; font-size: 26px; color: #5c3a1e; }
+  .modal-box .modal-body { font-size: 17px; line-height: 1.7; margin-bottom: 22px; color: #4a3b2e; }
+  .modal-box .modal-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .promo-btn { font-size: 18px; padding: 10px 14px; min-width: 88px; }
+  .promo-btn .ps { display: block; font-size: 44px; line-height: 1.1; }
+</style>
+</head>
+<body>
+
+<!-- ==================== 首頁 ==================== -->
+<div id="screen-home" class="screen active">
+  <h1>Chess Realm</h1>
+  <div class="subtitle">在棋盤上，解鎖一個王國的故事</div>
+  <div class="deco">♙ ♘ ♖ ♗ ♕ ♔</div>
+  <div class="home-buttons">
+    <button class="btn big" id="btn-pvp">雙人對戰</button>
+    <button class="btn big" id="btn-campaign">闖關模式</button>
+    <button class="btn big" id="btn-gallery">棋子故事館</button>
+  </div>
+</div>
+
+<!-- ==================== 關卡選擇 ==================== -->
+<div id="screen-levels" class="screen">
+  <div class="screen-header">
+    <h2>闖關模式・選擇關卡</h2>
+    <button class="btn secondary" id="btn-levels-home">返回首頁</button>
+  </div>
+  <div class="card-grid" id="level-grid"></div>
+  <div class="quick-clear-wrap">
+    <button class="btn subtle" id="btn-quick-clear">🛠 快速通關（測試用）</button>
+  </div>
+</div>
+
+<!-- ==================== 棋盤 ==================== -->
+<div id="screen-game" class="screen">
+  <div class="game-layout">
+    <div id="board"></div>
+    <div class="panel">
+      <div class="row">
+        <div class="label">目前模式</div>
+        <div class="value" id="info-mode"></div>
+      </div>
+      <div class="row" id="row-you">
+        <div class="label">你執</div>
+        <div class="value" id="info-you"></div>
+      </div>
+      <div class="row">
+        <div class="label">目前輪到</div>
+        <div class="turn-box"><span class="chip" id="turn-chip"></span><span id="turn-text"></span></div>
+      </div>
+      <div class="row thinking hidden" id="info-thinking">電腦思考中…</div>
+      <div class="row check-warn hidden" id="check-warn">⚠ 將軍！</div>
+      <div class="row" id="row-opp">
+        <div class="label">關卡與電腦難度</div>
+        <div class="opp-desc" id="info-opp"></div>
+      </div>
+      <div class="hint">提示：點選己方棋子即可看到所有合法走法。綠點＝可移動，橘紅框＝可吃子。</div>
+      <div class="btn-col">
+        <button class="btn" id="btn-restart">重新開始</button>
+        <button class="btn secondary" id="btn-game-home">返回首頁</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 棋子故事館 ==================== -->
+<div id="screen-gallery" class="screen">
+  <div class="screen-header">
+    <h2>棋子故事館</h2>
+    <button class="btn secondary" id="btn-gallery-home">返回首頁</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="pieces">棋子故事</button>
+    <button class="tab" data-tab="chronicle">王國編年史</button>
+  </div>
+  <div class="card-grid" id="gallery-grid"></div>
+</div>
+
+<!-- ==================== 故事閱讀頁 ==================== -->
+<div id="screen-story" class="screen">
+  <div class="story-page">
+    <div class="story-sym" id="story-sym"></div>
+    <h2 id="story-title"></h2>
+    <div class="story-sub" id="story-sub"></div>
+    <div id="story-body"></div>
+    <div class="story-note" id="story-note"></div>
+    <div class="story-actions">
+      <button class="btn secondary" id="btn-story-back">返回故事館</button>
+      <button class="btn hidden" id="btn-story-next">下一章 ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 共用彈窗 ==================== -->
+<div id="overlay" class="overlay hidden">
+  <div class="modal-box">
+    <h3 id="modal-title"></h3>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-buttons" id="modal-buttons"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// 快速通關（測試用）密碼，修改此常數即可更換密碼
+const QUICK_CLEAR_PASSWORD = "1111";
+
+/* =========================================================
+ * 故事資料（含棋子字元、關卡設定等常數，集中於此方便修改）
+ * ========================================================= */
+
+// 棋子字元：w=白、b=黑；P兵 N騎士 B主教 R城堡 Q皇后 K國王
+// （黑兵加上 ︎ 強制以文字樣式顯示，避免部分系統顯示成彩色表情符號）
+const PIECE_CHARS = {
+  wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
+  bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟︎'
+};
+
+const PIECE_NAMES = { P: '兵', N: '騎士', R: '城堡', B: '主教', Q: '皇后', K: '國王' };
+
+// 棋子價值（電腦對手判斷用）
+const PIECE_VALUE = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 };
+
+// 關卡設定：順序為 兵 → 騎士 → 城堡 → 主教 → 皇后 → 國王
+// 關卡只決定解鎖哪個棋子的故事，電腦強度由玩家另外選擇難度
+const LEVELS = [
+  { piece: 'P', name: '新兵訓練場', theme: '渺小的步兵一步步向前，走到底線便能升變——關於勇氣的故事。' },
+  { piece: 'N', name: '騎士的試煉', theme: '唯一能跳過其他棋子的騎士——關於不走尋常路的忠誠。' },
+  { piece: 'R', name: '堅壁要塞',   theme: '由古代戰車化身的城堡——關於堅守與守護的誓約。' },
+  { piece: 'B', name: '迷霧教堂',   theme: '從「象」變成「主教」的旅人——名字改變，身分不變。' },
+  { piece: 'Q', name: '皇后的宮廷', theme: '從最弱的大臣蛻變為最強的皇后——關於覺醒的力量。' },
+  { piece: 'K', name: '王座之戰',   theme: '不強大卻必須守住的國王——關於責任與孤獨。' }
+];
+
+// 電腦難度設定
+const DIFFICULTIES = {
+  easy:   { name: '簡單', desc: '完全隨機走合法步。' },
+  medium: { name: '中等', desc: '優先吃價值最高的子，並避免吃子後被反吃白送；沒有吃子機會時隨機。' },
+  hard:   { name: '困難', desc: '中等的基礎上，會將軍、推兵、出子；一步殺必殺，也不讓自己被一步將死。' }
+};
+
+// 和局原因
+const DRAW_REASONS = {
+  stalemate: '逼和：輪到的一方沒有任何合法走法，但國王並未被將軍。',
+  insufficient: '子力不足：雙方剩下的棋子都不可能將死對方。',
+  fifty: '五十步規則：連續五十回合沒有吃子，也沒有移動兵。',
+  threefold: '三次重複局面：相同局面已經出現三次。'
+};
+
+// 人物名字一律使用英文（全部故事統一）：
+//   Pip（年輕步兵）、Sir Rayne（騎士）、Bram（石門關守將）、Bishop Elias（主教）、
+//   Queen Seraphine（皇后）、King Alden（國王）、Lord Morvane（黑方統帥）
+
+// 棋子故事（順序與關卡一致；含真實歷史小筆記）
+const PIECE_STORIES = {
+  P: {
+    title: 'Pip 的長路',
+    body: [
+      '棋境王國的邊境終年吹著乾燥的風。農家少年 Pip 剛被編入步兵隊，站在最前線，手上只有一面小小的木盾。他膽子不大，每次只能向前踏出一步，不能後退，也不能轉身。同袍笑他：「你連雞都不敢殺，能走到哪裡去？」',
+      '營地裡的老鼓手卻對他說了一個古老的傳說：在遙遠的東方，曾有一種名叫「恰圖蘭卡」的戰爭遊戲，裡頭有步兵、騎兵、象兵與戰車四個兵種，而走在最前面的，永遠是步兵。「他們最渺小，卻藏著一個秘密——只要一路走到敵人的底線，就能脫胎換骨。」',
+      '號角響起，Pip 的雙腿在發抖，卻還是一格一格向前。他看著騎士 Sir Rayne 從自己頭頂高高躍過，也看見倒下的同伴把盾牌推給他。終於，他踏上了最後一列土地。一道光芒包圍了他：他可以成為皇后、城堡、主教或騎士——唯獨不能成為國王，因為王國只有一位國王。',
+      'Pip 這才明白，勇氣不是不害怕，而是害怕的時候，仍願意再往前走一步。'
+    ],
+    note: '西洋棋的祖先「恰圖蘭卡（Chaturanga）」約在六世紀前後出現於印度，棋子象徵古印度軍隊的四個兵種：步兵、騎兵、象兵與戰車。今日的兵正是當年的步兵，走到對方底線時可以升變為國王以外的任何棋子。'
+  },
+  N: {
+    title: 'Sir Rayne 不走直路',
+    body: [
+      'Sir Rayne 是王國裡最不拘小節的騎士，總是獨來獨往。別人筆直地衝鋒，他卻先走兩步、再拐一個彎，在地上踏出一個「日」字。將軍們搖頭：「騎兵就該正面衝殺，拐什麼彎！」',
+      '某天，前線被敵軍層層包圍，城牆、盾陣與長槍擋住了每一條直路。就在眾人束手無策時，Rayne 拉緊韁繩，戰馬一躍而起，越過敵人的頭頂，落在誰也想不到的位置——他是全軍中唯一能跳過其他人的戰士。',
+      '他在包圍圈深處找到了受困的新兵 Pip。Rayne 把這個嚇得發抖的少年拉上馬背，再一次縱身躍出重圍。',
+      '回到營地，Pip 小聲問：「您為什麼不像大家一樣走直路？」Rayne 摸摸戰馬的鬃毛：「忠誠不代表只能走一種路。只要心裡清楚自己要守護誰，拐個彎，也一樣能抵達。」從此，再也沒有人嘲笑他奇怪的步伐。'
+    ],
+    note: '騎士源自恰圖蘭卡中的「騎兵」。它走「日」字形（直走兩格再橫走一格，或橫走兩格再直走一格），是西洋棋中唯一能跳過其他棋子的棋子。'
+  },
+  R: {
+    title: 'Bram 與會走路的城牆',
+    body: [
+      '王國邊境的石門關，由沉默的守將 Bram 鎮守。關上那座最高的石塔，據說原本不是塔，而是一輛奔馳在東方戰場上的戰車。戰車隨著商旅一路向西，到了波斯，人們稱它為「rukh」；再傳入歐洲，名字慢慢演變成英文的「rook」。歐洲的工匠沒見過古代戰車，便依照心中的想像，把它雕成了有著城垛的城堡。',
+      'Bram 就像那座塔：只走直線，橫著走、豎著走，一步就能走得很遠，卻從不斜行。他話不多，但說出口的承諾從不落空。',
+      '某個夜晚，敵軍突襲王宮。Sir Rayne 衝出去求援，King Alden 身邊只剩下 Bram。危急時刻，國王向側邊移動兩格，Bram 則越過國王，穩穩擋在他身旁——這正是王國最古老的守護誓約「王車易位」。誓約一生只能立下一次，而且國王與守將都必須從未離開過原位。',
+      '「只要我還站著，」Bram 低聲說，「就沒有人能碰到陛下。」'
+    ],
+    note: '城堡（車）的前身是恰圖蘭卡中的「戰車」，波斯語稱為「rukh」，英文的 rook 一詞便由此演變而來。今日的城堡造型，則是中世紀歐洲人對這枚棋子的想像。'
+  },
+  B: {
+    title: '換了名字的旅人',
+    body: [
+      '迷霧教堂裡住著一位見多識廣的主教——Bishop Elias。很少人知道，他其實來自非常遙遠的地方。',
+      '在最初的故鄉印度，他是一頭披著戰甲的大象，在戰場上緩緩前行。後來他隨著棋戲傳入波斯與阿拉伯世界，人們用阿拉伯語叫他「fil」，意思仍然是「象」。再往西走進入歐洲，他的名字又一次改變，在英語裡成了「bishop」——主教。',
+      '名字換了又換，Elias 卻從不迷惘。他永遠沿著斜線前進，一生都走在出生時那種顏色的格子上；遇到難題，他也總是迂迴繞道，從別人想不到的角度切入。守將 Bram 曾問他：「別人給你取了這麼多名字，你不會忘了自己是誰嗎？」',
+      'Elias 望著教堂的彩繪玻璃，緩緩回答：「名字是別人給的，而要走哪一條路，是我自己選的。」那天之後，王國的孩子們學會了一件事：一個人的身分，不在於被如何稱呼，而在於如何前行。'
+    ],
+    note: '主教的前身是恰圖蘭卡中的「象」。傳入波斯與阿拉伯世界後，阿拉伯語稱它為「fil」（象）；傳入歐洲後，在英語中演變為 bishop（主教），而西班牙語至今仍稱它為 alfil。主教只能沿斜線移動。'
+  },
+  Q: {
+    title: '瘋狂皇后',
+    body: [
+      '在古老的傳說裡，Seraphine 所站的那個位置，原本並不屬於皇后。在波斯與阿拉伯流行的棋戲 shatranj 中，那是國王身邊的顧問，也就是大臣。它每次只能斜走一格，是棋盤上最弱小的棋子之一。就像多年來的 Seraphine——總是站在 King Alden 身旁低聲獻策，卻從不親上戰場。',
+      '棋戲傳到歐洲後，這個位置漸漸被稱為皇后。到了約十五世紀末，一般認為是在西班牙一帶，規則發生了巨大的改變：皇后可以沿直線與斜線任意前進，一口氣橫越整個棋盤。對局節奏突然變快，人們把這種新下法稱為「瘋狂皇后」。',
+      '在棋境王國，這一天被稱為「覺醒日」。Sir Rayne、Bram、Bishop Elias 全都愣住了——那位總是輕聲細語的顧問，竟在一瞬間成了全場最強大的戰士。',
+      '有人問她為何改變。Queen Seraphine 微微一笑：「我從未改變，我只是終於被允許，走出我能走的路。」站在一旁的 Pip 握緊了拳頭，因為他知道，當自己走到底線時，也能成為她。'
+    ],
+    note: '在波斯與阿拉伯的 shatranj 中，皇后原本是國王的顧問（大臣），每次只能斜走一格。約十五世紀末，歐洲（一般認為在西班牙一帶）的規則改變，皇后成為移動力最強的棋子，當時的新下法被稱為「瘋狂皇后」。'
+  },
+  K: {
+    title: '王座上的孤獨',
+    body: [
+      '棋境王國的國王 King Alden 溫和而謹慎。他每次只能走一格，比不上 Sir Rayne 的靈巧、Bram 的遠征，更遠遠不及 Queen Seraphine 縱橫戰場的力量。',
+      '可是每一場戰爭，所有人都在守護他：Pip 擋在他前方，Rayne 在他身側巡邏，Bram 與他立下易位的誓約，Bishop Elias 為他守住斜線，Seraphine 則在前方為他開路。',
+      '某天夜裡，Alden 獨自站在城頭。Pip 忍不住問：「陛下，您明明不是最強的，為什麼大家都要拚命守護您？」Alden 回答：「因為我倒下的那一刻，戰爭就結束了。古老的波斯人有一句話叫『shāh māt』，常被解釋為『國王無助』或『國王已死』。後來這句話傳遍世界，成了 checkmate——將死。」',
+      '他望向遠方：「國王不需要強大，但必須一直站著。這份責任，沒有人能替我承擔；這份孤獨，也只能由我承受。」Pip 沉默許久，深深行了一個禮。他第一次明白，最重要的棋子，未必是最強的那一個。'
+    ],
+    note: '國王每次只能向任意方向走一格，卻是整盤棋的核心——國王被將死，棋局就結束。英文「checkmate（將死）」源自波斯語「shāh māt」，常被解釋為「國王無助」或「國王已死」。'
+  }
+};
+
+// 王國編年史（純虛構主線故事，6 章；通關第 N 關解鎖第 N 章）
+const CHRONICLE = [
+  {
+    chapter: 1,
+    title: '黎明的號角',
+    summary: '黑方軍團在邊境集結，膽小的農家少年 Pip 被徵召入伍。',
+    body: [
+      '那年秋天，棋境王國的麥田才剛收割完，北方邊境就傳來急報：黑方軍團在灰原上集結，黑色旌旗一路延伸到地平線。',
+      '王城的號角在黎明時響起。農家少年 Pip 正在幫母親搬運麥袋，徵兵官把一面木盾塞進他懷裡：「步兵隊缺人，明天出發。」Pip 連劍都沒握過，他看著母親紅了眼眶，卻只能點點頭。',
+      '行軍途中，Pip 夜裡總是睡不著。老鼓手拍拍他的肩：「害怕沒關係，步兵本來就只能一步一步走。」第一次站上戰場時，Pip 的雙腿抖個不停。黑方的長槍陣像一堵牆壓過來，他舉起盾牌，閉上眼睛，等待衝擊——',
+      '衝擊沒有來。黑方前鋒在弓箭射程外停下腳步，對峙了一整個早晨，便悄悄撤退了，連一具屍體也沒有留下。',
+      '將軍們慶祝這場不流血的小勝，Pip 卻注意到一件奇怪的事：撤退的黑方士兵頻頻回頭，他們望的不是王城，而是遠方那座灰色的石門關。',
+      '他們真正想要的，到底是什麼？'
+    ]
+  },
+  {
+    chapter: 2,
+    title: '孤騎奇襲',
+    summary: 'Sir Rayne 單騎深入敵營，卻發現黑方軍團藏著蹊蹺。',
+    body: [
+      'King Alden 需要情報，而全王國只有一個人能辦到。命令還沒宣讀完，Sir Rayne 就已經跨上了戰馬。',
+      '他沒有走大路。他先往東疾馳，再猛然折向北方，像棋盤上的騎士一樣拐出一個「日」字，從兩支巡邏隊之間的縫隙一躍而過。月光下，他潛入了黑方的營地。',
+      '營地裡的景象讓 Rayne 皺起眉頭。這裡沒有攻城槌，也沒有成堆的箭矢；士兵們骨瘦如柴，許多人腰間掛的不是匕首，而是裝著種子的布袋。補給車大多是空的，只有幾輛載著水桶的車，被重兵團團看守。',
+      '在統帥大帳外，他聽見有人低聲說：「Lord Morvane 說了，只要拿下石門關，河水就會回來。」',
+      'Rayne 帶著一張偷來的行軍圖，在天亮前衝出營地。追兵的箭擦過他的肩膀，他卻笑了——他知道自己帶回的東西，比任何一場勝利都重要。',
+      '回到王城，他把地圖攤在國王面前：「陛下，他們不像是來征服的，倒像是來求生的。」話音未落，北方燃起了烽火：黑方大軍，正全力撲向石門關。'
+    ]
+  },
+  {
+    chapter: 3,
+    title: '石門關保衛戰',
+    summary: '守將 Bram 死守石門關，Pip 在城牆上明白了「守」的意義。',
+    body: [
+      '石門關是王國北境唯一的關口，由沉默的守將 Bram 鎮守了二十年。Pip 所在的步兵隊被派來支援，他第一次站上這座高大的城牆。',
+      '黑方大軍連續三天猛攻。雲梯一次次架上城牆，又一次次被推倒。Bram 總是站在最前面，他從不追擊，也從不後退，只是像一座塔一樣，直直地守住每一段城牆。',
+      '第三天夜裡，城門被撞出一道裂縫。Pip 嚇得想逃，Bram 卻按住他的肩膀：「守，不是因為我們比較強，而是因為身後有人需要我們。」Pip 想起家鄉的母親與麥田，咬牙扛起木樁，和眾人一起把城門頂住。',
+      '黎明時，黑方暫時退兵。Pip 在城牆下發現一名受傷的黑方少年兵，年紀和自己差不多，正抱著空水壺發抖。Pip 猶豫了一會兒，把自己的水和麵包遞給了他。',
+      '少年兵接過水壺，喃喃地說：「謝謝……我們那裡的河，已經乾了五十年。」',
+      'Pip 還來不及追問，城外的濃霧中，緩緩走來一位拄著手杖的旅人。'
+    ]
+  },
+  {
+    chapter: 4,
+    title: '迷霧中的訪客',
+    summary: 'Bishop Elias 抵達王國，看穿黑方軍隊行動的規律。',
+    body: [
+      '旅人名叫 Bishop Elias，來自遙遠的南方教堂，據說走遍了大陸上每一個王國。他一進石門關，就要求看所有的戰報。',
+      'Elias 在地圖上畫了一整夜的斜線。天亮時，他說：「黑方從不焚燒村莊，也不攻打糧倉。他們每次行軍都沿著乾涸的舊河道前進，而所有河道最後都指向同一個地方——石門關底下的古老水閘。」',
+      'Bram 臉色一變。關下確實有一座被封死的水閘，是先王在五十年前下令關閉的，至於理由，已經沒有人記得了。',
+      'Sir Rayne 一拍桌子：「所以 Morvane 要的不是王國，而是水？」Elias 點點頭：「正面決戰，雙方都會血流成河。但如果能讓 Morvane 親自走到談判桌前，或許還有另一條路。」',
+      '他提出一個迂迴的計畫：騎士佯攻、步兵牽制，把黑方主力引離本陣，逼 Morvane 帶著親衛直奔王城。唯一的風險是，王城的防守將變得非常薄弱。',
+      '大廳裡一片沉默。這時，一直站在國王身旁的 Queen Seraphine，緩緩站了起來。'
+    ]
+  },
+  {
+    chapter: 5,
+    title: 'Seraphine 的抉擇',
+    summary: 'Queen Seraphine 必須在守護國王與主動出擊之間做出決定。',
+    body: [
+      '多年來，Seraphine 一直是 King Alden 身邊的顧問。她總是站在國王身旁，輕聲獻策，從不親上戰場。所有人都以為，這一次她也會留下來守護王座。',
+      '「如果我留下，黑方親衛會繞過佯攻，計畫就會失敗；如果我出擊，陛下身邊就只剩下 Bram。」這是一個沒有完美答案的選擇。',
+      'King Alden 握住她的手：「Seraphine，這些年妳一直在替我思考。這一次，替王國思考吧。」',
+      '第二天清晨，Seraphine 披上戰甲。她沿直線衝破黑方的左翼，又沿斜線切斷右翼的退路，一口氣橫越整個戰場。黑方士兵從未見過這樣的力量，紛紛放下武器。在遠方牽制敵軍的 Pip 看傻了眼：「那是……皇后？」',
+      '與此同時，Bram 依照古老的誓約與國王交換了位置，用身體擋住王座前唯一的入口。',
+      '黃昏時分，戰場終於安靜下來。一名身披黑色斗篷的男人，獨自穿過倒下的旌旗，一步一步走向王城——Lord Morvane 來了。'
+    ]
+  },
+  {
+    chapter: 6,
+    title: '王座之戰',
+    summary: 'King Alden 與 Lord Morvane 正面相對，戰爭的真相終於揭曉。',
+    body: [
+      'King Alden 與 Lord Morvane 在王座大廳裡隔著一張棋盤相對而坐。四周早已被包圍，只要國王一聲令下，Morvane 便無路可逃——這是一盤已經被將死的棋。',
+      'Morvane 卻沒有拔劍，只取出一疊泛黃的信：「五十年前，你的父王因一場邊境誤會封閉了石門關的水閘。從此北方河流乾涸，田地化為灰原。我與父親寫了五十年的信，沒有一封得到回音。」',
+      'Bishop Elias 接過信，輕聲說：「當年的命令規定，任何北方信使都不得入關。這些信，從來沒有送到王城。」',
+      'Morvane 低下頭：「我發動戰爭，不是為了王座，只是想讓我的人民再喝到河水。若要將死，就將死我吧。」',
+      'Alden 沉默了很久，然後站起身，把棋盤上的白王與黑王並排放在中央：「這盤棋，不該有輸家。」當天，他親自下令打開石門關的水閘。',
+      '那年春天，河水重新流過北方的灰原，石門關成了兩國往來的市集。城牆上，已成為守門隊長的 Pip 和那位曾接過他麵包的北方少年並肩而立。黎明時分，他們一起吹響號角——這一次，不是為了戰爭，而是為了和平。'
+    ]
+  }
+];
+
+
+/* =========================================================
+ * 局面資料與規則
+ * ---------------------------------------------------------
+ * 局面 state 結構：
+ *   board    : 長度 64 的陣列，索引 = 列*8 + 行；列 0 為第 8 橫列（黑方底線），行 0 為 a 線
+ *              每格為 null 或棋子代碼，如 'wP'（白兵）、'bK'（黑王）
+ *   turn     : 'w' 或 'b'，輪到誰
+ *   castling : { wK, wQ, bK, bQ } 易位權（K=短易位、Q=長易位）
+ *   ep       : 吃過路兵的目標格索引，沒有則為 -1
+ *   halfmove : 半步計數（五十步規則用，吃子或動兵時歸零）
+ *   fullmove : 回合數
+ *   history  : 局面鍵值歷史（三次重複局面用）
+ * ========================================================= */
+
+const FILES = 'abcdefgh';
+const DIRS = {
+  N: [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]],
+  B: [[-1,-1],[-1,1],[1,-1],[1,1]],
+  R: [[-1,0],[1,0],[0,-1],[0,1]]
+};
+DIRS.Q = DIRS.B.concat(DIRS.R);
+DIRS.K = DIRS.Q;
+
+function opp(color) { return color === 'w' ? 'b' : 'w'; }
+function inBounds(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
+function sqName(i) { return FILES[i & 7] + (8 - (i >> 3)); }
+
+// 建立初始局面
+function createInitialState() {
+  const back = ['R','N','B','Q','K','B','N','R'];
+  const board = new Array(64).fill(null);
+  for (let c = 0; c < 8; c++) {
+    board[c] = 'b' + back[c];
+    board[8 + c] = 'bP';
+    board[48 + c] = 'wP';
+    board[56 + c] = 'w' + back[c];
+  }
+  const s = {
+    board, turn: 'w',
+    castling: { wK: true, wQ: true, bK: true, bQ: true },
+    ep: -1, halfmove: 0, fullmove: 1, history: []
+  };
+  s.history = [positionKey(s)];
+  return s;
+}
+
+// 過路兵目標格是否真的能被吃（影響局面是否「相同」）
+function epRelevant(s) {
+  if (s.ep < 0) return false;
+  const r = s.ep >> 3, c = s.ep & 7;
+  const pr = s.turn === 'w' ? r + 1 : r - 1;
+  for (const dc of [-1, 1]) {
+    if (inBounds(pr, c + dc) && s.board[pr * 8 + c + dc] === s.turn + 'P') return true;
+  }
+  return false;
+}
+
+// 局面鍵值：棋盤 + 輪到誰 + 易位權 + 有效的過路兵格
+function positionKey(s) {
+  let k = '';
+  for (let i = 0; i < 64; i++) k += s.board[i] || '..';
+  const cs = s.castling;
+  k += s.turn + (cs.wK ? 'K' : '') + (cs.wQ ? 'Q' : '') + (cs.bK ? 'k' : '') + (cs.bQ ? 'q' : '');
+  k += epRelevant(s) ? s.ep : '-';
+  return k;
+}
+
+// 判斷格子 sq 是否被 by 方攻擊
+function isSquareAttacked(b, sq, by) {
+  const r = sq >> 3, c = sq & 7;
+  // 兵：白兵往上（列數變小）攻擊，所以攻擊 sq 的白兵位於 r+1 列
+  const pr = by === 'w' ? r + 1 : r - 1;
+  for (const dc of [-1, 1]) {
+    if (inBounds(pr, c + dc) && b[pr * 8 + c + dc] === by + 'P') return true;
+  }
+  for (const [dr, dc] of DIRS.N) {
+    const r2 = r + dr, c2 = c + dc;
+    if (inBounds(r2, c2) && b[r2 * 8 + c2] === by + 'N') return true;
+  }
+  for (const [dr, dc] of DIRS.K) {
+    const r2 = r + dr, c2 = c + dc;
+    if (inBounds(r2, c2) && b[r2 * 8 + c2] === by + 'K') return true;
+  }
+  for (const [dr, dc] of DIRS.R) {
+    let r2 = r + dr, c2 = c + dc;
+    while (inBounds(r2, c2)) {
+      const p = b[r2 * 8 + c2];
+      if (p) { if (p === by + 'R' || p === by + 'Q') return true; break; }
+      r2 += dr; c2 += dc;
+    }
+  }
+  for (const [dr, dc] of DIRS.B) {
+    let r2 = r + dr, c2 = c + dc;
+    while (inBounds(r2, c2)) {
+      const p = b[r2 * 8 + c2];
+      if (p) { if (p === by + 'B' || p === by + 'Q') return true; break; }
+      r2 += dr; c2 += dc;
+    }
+  }
+  return false;
+}
+
+function findKing(b, color) { return b.indexOf(color + 'K'); }
+
+function inCheck(s, color) {
+  return isSquareAttacked(s.board, findKing(s.board, color), opp(color));
+}
+
+// 執行走法，回傳新局面（不修改原局面）。record=false 時不記錄歷史（給合法性檢查與電腦評估用）
+function applyMove(s, m, record = true) {
+  const b = s.board.slice();
+  const color = m.piece[0];
+  b[m.from] = null;
+  b[m.to] = m.promo ? color + m.promo : m.piece;
+  if (m.flag === 'ep') b[color === 'w' ? m.to + 8 : m.to - 8] = null;     // 移除被吃的過路兵
+  if (m.flag === 'castleK') { b[m.to - 1] = b[m.to + 1]; b[m.to + 1] = null; } // 短易位移車
+  if (m.flag === 'castleQ') { b[m.to + 1] = b[m.to - 2]; b[m.to - 2] = null; } // 長易位移車
+
+  const cs = Object.assign({}, s.castling);
+  if (m.piece[1] === 'K') { cs[color + 'K'] = false; cs[color + 'Q'] = false; }
+  const corners = { 56: 'wQ', 63: 'wK', 0: 'bQ', 7: 'bK' };   // 車離開或在角落被吃 → 失去易位權
+  if (corners[m.from]) cs[corners[m.from]] = false;
+  if (corners[m.to]) cs[corners[m.to]] = false;
+
+  const ns = {
+    board: b,
+    turn: opp(s.turn),
+    castling: cs,
+    ep: m.flag === 'double' ? (m.from + m.to) / 2 : -1,
+    halfmove: (m.piece[1] === 'P' || m.captured) ? 0 : s.halfmove + 1,
+    fullmove: s.fullmove + (color === 'b' ? 1 : 0),
+    history: s.history
+  };
+  if (record) ns.history = s.history.concat([positionKey(ns)]);
+  return ns;
+}
+
+// 子力不足判定
+function isInsufficientMaterial(b) {
+  const minors = [];
+  for (let i = 0; i < 64; i++) {
+    const p = b[i];
+    if (!p || p[1] === 'K') continue;
+    if (p[1] === 'P' || p[1] === 'R' || p[1] === 'Q') return false;
+    minors.push({ type: p[1], sqColor: ((i >> 3) + (i & 7)) % 2 });
+  }
+  if (minors.length <= 1) return true;                       // 王對王、王＋單一輕子對王
+  if (minors.every(m => m.type === 'B')) {                   // 只剩主教且全在同色格
+    return minors.every(m => m.sqColor === minors[0].sqColor);
+  }
+  return false;
+}
+
+// 判定局面狀態：{ over, result, winner, reason }
+function getGameStatus(s, legal) {
+  if (!legal) legal = legalMoves(s);
+  if (legal.length === 0) {
+    if (inCheck(s, s.turn)) return { over: true, result: 'checkmate', winner: opp(s.turn) };
+    return { over: true, result: 'draw', reason: 'stalemate' };
+  }
+  if (isInsufficientMaterial(s.board)) return { over: true, result: 'draw', reason: 'insufficient' };
+  if (s.halfmove >= 100) return { over: true, result: 'draw', reason: 'fifty' };
+  const key = s.history[s.history.length - 1];
+  let count = 0;
+  for (const k of s.history) if (k === key) count++;
+  if (count >= 3) return { over: true, result: 'draw', reason: 'threefold' };
+  return { over: false };
+}
+
+
+/* =========================================================
+ * 合法走法產生
+ * 走法物件：{ from, to, piece, captured, promo, flag }
+ *   flag: null | 'double'（兵前進兩格）| 'ep'（吃過路兵）| 'castleK' | 'castleQ'
+ * ========================================================= */
+
+function pushPawnMove(moves, from, to, piece, captured, isPromo) {
+  if (isPromo) {
+    for (const t of ['Q', 'R', 'B', 'N']) moves.push({ from, to, piece, captured, promo: t, flag: null });
+  } else {
+    moves.push({ from, to, piece, captured, promo: null, flag: null });
+  }
+}
+
+// 產生「偽合法」走法（尚未檢查走完後自己的王是否被將軍）
+function pseudoMoves(s) {
+  const moves = [];
+  const b = s.board, color = s.turn, enemy = opp(color);
+  for (let i = 0; i < 64; i++) {
+    const p = b[i];
+    if (!p || p[0] !== color) continue;
+    const t = p[1], r = i >> 3, c = i & 7;
+
+    if (t === 'P') {
+      const dir = color === 'w' ? -1 : 1;
+      const startRow = color === 'w' ? 6 : 1;
+      const lastRow = color === 'w' ? 0 : 7;
+      const r1 = r + dir;
+      if (!inBounds(r1, c)) continue;
+      const f1 = r1 * 8 + c;
+      if (!b[f1]) {
+        pushPawnMove(moves, i, f1, p, null, r1 === lastRow);
+        const f2 = (r + 2 * dir) * 8 + c;
+        if (r === startRow && !b[f2]) moves.push({ from: i, to: f2, piece: p, captured: null, promo: null, flag: 'double' });
+      }
+      for (const dc of [-1, 1]) {
+        if (!inBounds(r1, c + dc)) continue;
+        const tg = r1 * 8 + c + dc;
+        if (b[tg] && b[tg][0] === enemy) pushPawnMove(moves, i, tg, p, b[tg], r1 === lastRow);
+        else if (!b[tg] && tg === s.ep) moves.push({ from: i, to: tg, piece: p, captured: enemy + 'P', promo: null, flag: 'ep' });
+      }
+    } else if (t === 'N' || t === 'K') {
+      for (const [dr, dc] of DIRS[t]) {
+        const r2 = r + dr, c2 = c + dc;
+        if (!inBounds(r2, c2)) continue;
+        const tg = r2 * 8 + c2;
+        if (!b[tg] || b[tg][0] === enemy) moves.push({ from: i, to: tg, piece: p, captured: b[tg], promo: null, flag: null });
+      }
+      // 王車易位：王車未動過（易位權）、中間無子、王不在將軍中、經過與到達格不被攻擊
+      if (t === 'K') {
+        const home = color === 'w' ? 60 : 4;
+        if (i === home && !isSquareAttacked(b, home, enemy)) {
+          if (s.castling[color + 'K'] && b[home + 3] === color + 'R' && !b[home + 1] && !b[home + 2] &&
+              !isSquareAttacked(b, home + 1, enemy) && !isSquareAttacked(b, home + 2, enemy)) {
+            moves.push({ from: i, to: home + 2, piece: p, captured: null, promo: null, flag: 'castleK' });
+          }
+          if (s.castling[color + 'Q'] && b[home - 4] === color + 'R' && !b[home - 1] && !b[home - 2] && !b[home - 3] &&
+              !isSquareAttacked(b, home - 1, enemy) && !isSquareAttacked(b, home - 2, enemy)) {
+            moves.push({ from: i, to: home - 2, piece: p, captured: null, promo: null, flag: 'castleQ' });
+          }
+        }
+      }
+    } else {
+      // 滑行棋子：主教、城堡、皇后
+      for (const [dr, dc] of DIRS[t]) {
+        let r2 = r + dr, c2 = c + dc;
+        while (inBounds(r2, c2)) {
+          const tg = r2 * 8 + c2;
+          if (!b[tg]) {
+            moves.push({ from: i, to: tg, piece: p, captured: null, promo: null, flag: null });
+          } else {
+            if (b[tg][0] === enemy) moves.push({ from: i, to: tg, piece: p, captured: b[tg], promo: null, flag: null });
+            break;
+          }
+          r2 += dr; c2 += dc;
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+// 合法走法：過濾掉走完後自己國王會被將軍的走法
+function legalMoves(s) {
+  const color = s.turn;
+  return pseudoMoves(s).filter(m => {
+    const ns = applyMove(s, m, false);
+    return !isSquareAttacked(ns.board, findKing(ns.board, color), opp(color));
+  });
+}
+
+// 是否至少有一個合法走法（找到就提早結束，較省時）
+function hasLegalMove(s) {
+  const color = s.turn;
+  for (const m of pseudoMoves(s)) {
+    const ns = applyMove(s, m, false);
+    if (!isSquareAttacked(ns.board, findKing(ns.board, color), opp(color))) return true;
+  }
+  return false;
+}
+
+
+/* =========================================================
+ * 電腦對手（規則式邏輯，無任何搜尋演算法）
+ * ========================================================= */
+
+function randomPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// 從陣列中取出分數最高者（同分隨機）
+function pickBest(arr, scoreFn) {
+  let best = -Infinity, list = [];
+  for (const x of arr) {
+    const sc = scoreFn(x);
+    if (sc > best) { best = sc; list = [x]; }
+    else if (sc === best) list.push(x);
+  }
+  return randomPick(list);
+}
+
+function moverValue(m) { return PIECE_VALUE[m.promo || m.piece[1]]; }
+function capturedValue(m) { return m.captured ? PIECE_VALUE[m.captured[1]] : 0; }
+
+// 走完後目的地是否會被對方立刻攻擊（反吃）
+function landsAttacked(s, m) {
+  const ns = applyMove(s, m, false);
+  return isSquareAttacked(ns.board, m.to, opp(s.turn));
+}
+
+// 吃子是否「不白送」：目的地不會被反吃，或吃到的價值不低於自己
+function isSafeCapture(s, m) {
+  return !landsAttacked(s, m) || capturedValue(m) >= moverValue(m);
+}
+
+function givesCheck(s, m) {
+  const ns = applyMove(s, m, false);
+  return inCheck(ns, ns.turn);
+}
+
+function givesMate(s, m) {
+  const ns = applyMove(s, m, false);
+  return inCheck(ns, ns.turn) && !hasLegalMove(ns);
+}
+
+// 走完 m 之後，對方是否有任何一步可以直接將死我方
+function allowsMateInOne(s, m) {
+  const ns = applyMove(s, m, false);
+  for (const reply of legalMoves(ns)) {
+    const n2 = applyMove(ns, reply, false);
+    if (inCheck(n2, n2.turn) && !hasLegalMove(n2)) return true;
+  }
+  return false;
+}
+
+// 「困難」的走法評分：安全吃子 > 將軍 > 出子／推兵，並避免白送
+function heuristicScore(s, m) {
+  const color = s.turn;
+  const t = m.piece[1];
+  const fromRow = m.from >> 3, toRow = m.to >> 3;
+  const backRow = color === 'w' ? 7 : 0;
+  let score = Math.random() * 0.5;   // 微量隨機，讓走法有變化
+
+  const attacked = landsAttacked(s, m);
+  if (m.captured) {
+    if (!attacked || capturedValue(m) >= moverValue(m)) score += capturedValue(m) * 10;
+    else score -= 5;
+  }
+  // 移到會被反吃的格子且不划算 → 扣分（避免白送）
+  if (attacked && moverValue(m) > capturedValue(m)) score -= moverValue(m) * 4;
+  if (givesCheck(s, m)) score += 35;                                      // 優先將軍
+  if ((t === 'N' || t === 'B') && fromRow === backRow) score += 6;        // 出動輕子
+  if (t === 'P' && !m.captured) {                                         // 推進兵
+    score += 2 + Math.abs(toRow - fromRow) * 0.5;
+    const col = m.from & 7;
+    if (col === 3 || col === 4) score += 1.5;                             // 中央兵
+  }
+  if (m.promo) score += 40;                                               // 升變
+  if (m.flag === 'castleK' || m.flag === 'castleQ') score += 8;           // 易位保護國王
+  if (t === 'K' && !m.flag) score -= 3;                                   // 避免無故亂動國王
+  return score;
+}
+
+// 依難度選擇走法（difficulty 為 'easy' | 'medium' | 'hard'）
+function aiChooseMove(s, difficulty) {
+  // 電腦升變一律選皇后
+  const moves = legalMoves(s).filter(m => !m.promo || m.promo === 'Q');
+
+  switch (difficulty) {
+    case 'easy': // 簡單：完全隨機
+      return randomPick(moves);
+
+    case 'medium': { // 中等：優先吃價值最高且不會白送的子；否則隨機（盡量不選白送的吃子）
+      const safeCaps = moves.filter(m => m.captured && isSafeCapture(s, m));
+      if (safeCaps.length) return pickBest(safeCaps, capturedValue);
+      const quiet = moves.filter(m => !m.captured);
+      return randomPick(quiet.length ? quiet : moves);
+    }
+
+    case 'hard': default: { // 困難：一步殺必殺、避免被一步將死，其餘依評分（安全吃子、將軍、推兵、出子）
+      const mates = moves.filter(m => givesMate(s, m));
+      if (mates.length) return randomPick(mates);
+      let candidates = moves.filter(m => !allowsMateInOne(s, m));
+      if (!candidates.length) candidates = moves;
+      return pickBest(candidates, m => heuristicScore(s, m));
+    }
+  }
+}
+
+
+/* =========================================================
+ * 遊戲流程控制
+ * ========================================================= */
+
+let game = null;          // 目前對局
+let gameCounter = 0;      // 對局編號（避免離開後舊的電腦計時器繼續動作）
+let aiTimer = null;
+const unlocked = new Set();   // 已通關的關卡索引：通關第 N 關 = 解鎖第 N 個棋子故事＋編年史第 N 章；只存在記憶體，重新整理即歸零
+let galleryTab = 'pieces';    // 故事館目前分頁：'pieces' 棋子故事 | 'chronicle' 王國編年史
+
+function startGame(mode, levelIdx = -1, playerColor = 'w', difficulty = 'easy') {
+  clearTimeout(aiTimer);
+  game = {
+    id: ++gameCounter,
+    mode,                                         // 'pvp' 或 'campaign'
+    levelIdx,                                     // 關卡（決定解鎖哪個故事）
+    playerColor,
+    difficulty,                                   // 電腦難度 'easy' | 'medium' | 'hard'
+    flipped: mode === 'campaign' && playerColor === 'b',
+    state: createInitialState(),
+    legal: [],
+    selected: -1,
+    lastMove: null,
+    over: false,
+    busy: false                                   // 電腦思考或升變選擇中
+  };
+  game.legal = legalMoves(game.state);
+  showScreen('game');
+  renderGame();
+  maybeAIMove();
+}
+
+function leaveGame() {
+  clearTimeout(aiTimer);
+  game = null;
+}
+
+function isPlayerTurn() {
+  return game.mode === 'pvp' || game.state.turn === game.playerColor;
+}
+
+// 棋盤點擊處理
+function onSquareClick(i) {
+  if (!game || game.over || game.busy || !isPlayerTurn()) return;
+  const s = game.state;
+
+  if (game.selected !== -1) {
+    const ms = game.legal.filter(m => m.from === game.selected && m.to === i);
+    if (ms.length) {
+      if (ms[0].promo) askPromotion(ms);
+      else commitMove(ms[0]);
+      return;
+    }
+  }
+  const p = s.board[i];
+  if (p && p[0] === s.turn && game.selected !== i) game.selected = i;
+  else game.selected = -1;
+  renderGame();
+}
+
+// 兵升變：彈窗讓玩家選擇
+function askPromotion(ms) {
+  game.busy = true;
+  const color = ms[0].piece[0];
+  const gid = game.id;
+  showModal({
+    title: '兵升變',
+    body: '你的兵抵達底線！請選擇要升變成哪一種棋子：',
+    buttons: ['Q', 'R', 'B', 'N'].map(t => ({
+      html: `<span class="ps">${PIECE_CHARS[color + t]}</span>${PIECE_NAMES[t]}`,
+      cls: 'promo-btn',
+      onClick: () => {
+        if (!game || game.id !== gid) return;
+        game.busy = false;
+        commitMove(ms.find(m => m.promo === t));
+      }
+    }))
+  });
+}
+
+// 實際落子並更新狀態
+function commitMove(m) {
+  game.state = applyMove(game.state, m);
+  game.lastMove = { from: m.from, to: m.to };
+  game.selected = -1;
+  game.legal = legalMoves(game.state);
+  const status = getGameStatus(game.state, game.legal);
+  if (status.over) {
+    game.over = true;
+    renderGame();
+    const gid = game.id;
+    setTimeout(() => { if (game && game.id === gid) showResult(status); }, 450);
+    return;
+  }
+  renderGame();
+  maybeAIMove();
+}
+
+// 闖關模式且輪到電腦 → 延遲 500~800ms 後走子
+function maybeAIMove() {
+  if (!game || game.over || game.mode !== 'campaign' || isPlayerTurn()) return;
+  game.busy = true;
+  renderGame();
+  const gid = game.id;
+  aiTimer = setTimeout(() => {
+    if (!game || game.id !== gid) return;
+    const m = aiChooseMove(game.state, game.difficulty);
+    game.busy = false;
+    commitMove(m);
+  }, 500 + Math.random() * 300);
+}
+
+// 結果彈窗
+function showResult(status) {
+  const colorName = c => (c === 'w' ? '白方' : '黑方');
+  let headline, detail;
+  if (status.result === 'checkmate') {
+    headline = `將死！${colorName(status.winner)}獲勝`;
+    detail = '';
+  } else {
+    headline = '和局';
+    detail = DRAW_REASONS[status.reason];
+  }
+
+  if (game.mode === 'pvp') {
+    showModal({
+      title: headline,
+      body: detail || `恭喜${colorName(status.winner)}！`,
+      buttons: [
+        { text: '再來一局', onClick: () => startGame('pvp') },
+        { text: '返回首頁', cls: 'secondary', onClick: () => { leaveGame(); showScreen('home'); } }
+      ]
+    });
+    return;
+  }
+
+  const lv = game.levelIdx;
+  const piece = LEVELS[lv].piece;
+  const playerWon = status.result === 'checkmate' && status.winner === game.playerColor;
+  if (playerWon) {
+    unlocked.add(lv);
+    showModal({
+      title: '🎉 通關！',
+      body: `${headline}<br>你在「${LEVELS[lv].name}」擊敗了難度「${DIFFICULTIES[game.difficulty].name}」的電腦！<br><strong>解鎖《${PIECE_NAMES[piece]}的故事》與編年史第 ${lv + 1} 章</strong>`,
+      buttons: [
+        { text: '閱讀棋子故事', onClick: () => { leaveGame(); openStory(lv); } },
+        { text: '閱讀編年史', onClick: () => { leaveGame(); openChapter(lv); } },
+        { text: '回關卡選擇', cls: 'secondary', onClick: () => { leaveGame(); showScreen('levels'); } }
+      ]
+    });
+  } else {
+    showModal({
+      title: '挑戰失敗',
+      body: `${headline}${detail ? '<br>' + detail : ''}<br>再接再厲，回到關卡選擇重新挑戰吧！`,
+      buttons: [
+        { text: '回關卡選擇', onClick: () => { leaveGame(); showScreen('levels'); } }
+      ]
+    });
+  }
+}
+
+// 闖關：開局設定視窗（選擇顏色＋電腦難度）
+function openGameSetup(lv) {
+  const setup = { color: null, difficulty: 'easy' };   // 難度預設「簡單」，顏色需玩家選擇
+  const colorOpts = [['w', '♔ 執白（先手）'], ['b', '♚ 執黑（後手）']];
+  const btns = showModal({
+    title: `第 ${lv + 1} 關：${LEVELS[lv].name}`,
+    body: `
+      <div class="setup-group">
+        <div class="setup-label">選擇顏色</div>
+        <div class="opt-row" id="opt-color">
+          ${colorOpts.map(([v, t]) => `<button class="opt" data-value="${v}">${t}</button>`).join('')}
+        </div>
+      </div>
+      <div class="setup-group">
+        <div class="setup-label">選擇電腦難度</div>
+        <div class="opt-row" id="opt-diff">
+          ${Object.keys(DIFFICULTIES).map(k => `<button class="opt" data-value="${k}">${DIFFICULTIES[k].name}</button>`).join('')}
+        </div>
+        <div class="setup-desc" id="diff-desc"></div>
+      </div>`,
+    buttons: [
+      { text: '開始遊戲', keepOpen: true, onClick: () => {
+          if (!setup.color) return;
+          closeModal();
+          startGame('campaign', lv, setup.color, setup.difficulty);
+        } },
+      { text: '取消', cls: 'secondary' }
+    ]
+  });
+  const startBtn = btns[0];
+
+  function refresh() {
+    document.querySelectorAll('#opt-color .opt').forEach(b => b.classList.toggle('selected', b.dataset.value === setup.color));
+    document.querySelectorAll('#opt-diff .opt').forEach(b => b.classList.toggle('selected', b.dataset.value === setup.difficulty));
+    $('diff-desc').textContent = DIFFICULTIES[setup.difficulty].desc;
+    startBtn.disabled = !(setup.color && setup.difficulty);
+  }
+  document.querySelectorAll('#opt-color .opt').forEach(b => b.addEventListener('click', () => { setup.color = b.dataset.value; refresh(); }));
+  document.querySelectorAll('#opt-diff .opt').forEach(b => b.addEventListener('click', () => { setup.difficulty = b.dataset.value; refresh(); }));
+  refresh();
+}
+
+// 快速通關（測試用）：輸入密碼後解鎖全部故事
+function openQuickClear() {
+  const btns = showModal({
+    title: '🛠 快速通關（測試用）',
+    body: `
+      <div>請輸入測試密碼：</div>
+      <input type="password" id="qc-input" class="pw-input" autocomplete="off">
+      <div class="pw-error hidden" id="qc-error">密碼錯誤</div>`,
+    buttons: [
+      { text: '確認', keepOpen: true, onClick: submit },
+      { text: '取消', cls: 'secondary' }
+    ]
+  });
+  const input = $('qc-input');
+  input.focus();
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+
+  function submit() {
+    if (input.value === QUICK_CLEAR_PASSWORD) {
+      LEVELS.forEach((_, idx) => unlocked.add(idx));
+      renderLevels();
+      showModal({
+        title: '快速通關完成',
+        body: '已解鎖全部棋子故事與王國編年史',
+        buttons: [
+          { text: '前往棋子故事館', onClick: () => { galleryTab = 'pieces'; showScreen('gallery'); } },
+          { text: '留在關卡選擇', cls: 'secondary' }
+        ]
+      });
+    } else {
+      $('qc-error').classList.remove('hidden');
+      input.value = '';
+      input.focus();
+    }
+  }
+}
+
+function confirmAction(message, onYes) {
+  showModal({
+    title: '確認',
+    body: message,
+    buttons: [
+      { text: '確定', cls: 'danger', onClick: onYes },
+      { text: '取消', cls: 'secondary' }
+    ]
+  });
+}
+
+
+/* =========================================================
+ * 畫面渲染
+ * ========================================================= */
+
+const $ = id => document.getElementById(id);
+
+function renderGame() {
+  if (!game) return;
+  renderBoard();
+  renderInfo();
+}
+
+function renderBoard() {
+  const boardEl = $('board');
+  boardEl.innerHTML = '';
+  const s = game.state;
+  const checkSq = inCheck(s, s.turn) ? findKing(s.board, s.turn) : -1;
+
+  // 選中棋子的目的地（依目的地分組；升變會有多筆同目的地）
+  const targets = new Map();
+  if (game.selected !== -1) {
+    for (const m of game.legal) if (m.from === game.selected) targets.set(m.to, m);
+  }
+
+  for (let vi = 0; vi < 64; vi++) {
+    const i = game.flipped ? 63 - vi : vi;     // 翻轉時整個棋盤旋轉 180 度
+    const r = i >> 3, c = i & 7;
+    const sq = document.createElement('div');
+    sq.className = 'sq ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+    if (game.lastMove && (i === game.lastMove.from || i === game.lastMove.to)) sq.classList.add('last');
+    if (i === checkSq) sq.classList.add('check');
+    if (i === game.selected) sq.classList.add('sel');
+    if (targets.has(i)) {
+      if (targets.get(i).captured) sq.classList.add('cap');
+      else {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        sq.appendChild(dot);
+      }
+    }
+    const p = s.board[i];
+    if (p) {
+      const span = document.createElement('span');
+      span.className = 'piece ' + p[0];
+      span.textContent = PIECE_CHARS[p];
+      sq.appendChild(span);
+    }
+    // 座標標示：畫面最左欄顯示橫列數字、最下列顯示直線字母
+    if (vi % 8 === 0) {
+      const lab = document.createElement('span');
+      lab.className = 'coord rank';
+      lab.textContent = 8 - r;
+      sq.appendChild(lab);
+    }
+    if (vi >= 56) {
+      const lab = document.createElement('span');
+      lab.className = 'coord file';
+      lab.textContent = FILES[c];
+      sq.appendChild(lab);
+    }
+    sq.title = sqName(i);
+    sq.addEventListener('click', () => onSquareClick(i));
+    boardEl.appendChild(sq);
+  }
+}
+
+function renderInfo() {
+  const s = game.state;
+  const isCampaign = game.mode === 'campaign';
+  $('info-mode').textContent = isCampaign
+    ? `闖關第 ${game.levelIdx + 1} 關・難度：${DIFFICULTIES[game.difficulty].name}`
+    : '雙人對戰';
+  $('row-you').classList.toggle('hidden', !isCampaign);
+  $('row-opp').classList.toggle('hidden', !isCampaign);
+  if (isCampaign) {
+    $('info-you').textContent = game.playerColor === 'w' ? '白方（先手）' : '黑方（後手）';
+    $('info-opp').textContent = `「${LEVELS[game.levelIdx].name}」・${DIFFICULTIES[game.difficulty].desc}`;
+  }
+  $('turn-chip').className = 'chip ' + s.turn;
+  let turnText = s.turn === 'w' ? '白方' : '黑方';
+  if (isCampaign) turnText += s.turn === game.playerColor ? '（你）' : '（電腦）';
+  $('turn-text').textContent = turnText;
+  $('info-thinking').classList.toggle('hidden', !(isCampaign && game.busy && !isPlayerTurn() && !game.over));
+  $('check-warn').classList.toggle('hidden', !inCheck(s, s.turn));
+}
+
+function renderLevels() {
+  const grid = $('level-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach((lv, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const done = unlocked.has(idx);
+    card.innerHTML = `
+      <div class="lv">第 ${idx + 1} 關</div>
+      <div class="badge ${done ? 'done' : ''}">${done ? '✔ 已通關' : '未通關'}</div>
+      <div class="sym">${PIECE_CHARS['w' + lv.piece]}</div>
+      <div class="name">${lv.name}</div>
+      <div class="desc">${lv.theme}</div>`;
+    card.addEventListener('click', () => openGameSetup(idx));
+    grid.appendChild(card);
+  });
+}
+
+function renderGallery() {
+  document.querySelectorAll('#screen-gallery .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === galleryTab));
+  const grid = $('gallery-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach((lv, idx) => {
+    const isOpen = unlocked.has(idx);
+    const card = document.createElement('div');
+    card.className = 'card' + (isOpen ? '' : ' locked');
+    if (galleryTab === 'pieces') {
+      // 棋子故事卡片
+      const story = PIECE_STORIES[lv.piece];
+      card.innerHTML = isOpen
+        ? `<div class="lv">第 ${idx + 1} 篇</div>
+           <div class="badge done">已解鎖</div>
+           <div class="sym">${PIECE_CHARS['w' + lv.piece]}</div>
+           <div class="name">${PIECE_NAMES[lv.piece]}</div>
+           <div class="desc" style="text-align:center">《${story.title}》<br>點擊閱讀</div>`
+        : `<div class="lv">第 ${idx + 1} 篇</div>
+           <div class="badge">🔒</div>
+           <div class="sym">${PIECE_CHARS['w' + lv.piece]}</div>
+           <div class="name">${PIECE_NAMES[lv.piece]}</div>
+           <div class="lock-text">🔒 通過第 ${idx + 1} 關解鎖</div>`;
+      if (isOpen) card.addEventListener('click', () => openStory(idx));
+    } else {
+      // 王國編年史章節卡片
+      const ch = CHRONICLE[idx];
+      card.innerHTML = isOpen
+        ? `<div class="lv">王國編年史</div>
+           <div class="badge done">已解鎖</div>
+           <div class="chap-icon">📖</div>
+           <div class="chap-title">第 ${ch.chapter} 章：${ch.title}</div>
+           <div class="desc" style="text-align:center">${ch.summary}</div>`
+        : `<div class="lv">王國編年史</div>
+           <div class="badge">🔒</div>
+           <div class="chap-icon">🔒</div>
+           <div class="chap-title">第 ${ch.chapter} 章</div>
+           <div class="lock-text">通過第 ${idx + 1} 關解鎖</div>`;
+      if (isOpen) card.addEventListener('click', () => openChapter(idx));
+    }
+    grid.appendChild(card);
+  });
+}
+
+function renderParagraphs(paras) {
+  const body = $('story-body');
+  body.innerHTML = '';
+  for (const para of paras) {
+    const p = document.createElement('p');
+    p.textContent = para;
+    body.appendChild(p);
+  }
+}
+
+// 棋子故事閱讀頁
+function renderStory(idx) {
+  const piece = LEVELS[idx].piece;
+  const story = PIECE_STORIES[piece];
+  $('story-sym').textContent = PIECE_CHARS['w' + piece];
+  $('story-title').textContent = `${PIECE_NAMES[piece]}的故事：${story.title}`;
+  $('story-sub').textContent = `棋子故事・第 ${idx + 1} 篇`;
+  renderParagraphs(story.body);
+  $('story-note').classList.remove('hidden');
+  $('story-note').innerHTML = '<strong>📜 歷史小筆記</strong><br>';
+  $('story-note').appendChild(document.createTextNode(story.note));
+  $('btn-story-next').classList.add('hidden');
+}
+
+// 王國編年史閱讀頁（下一章已解鎖時顯示「下一章 ▶」）
+function renderChapter(idx) {
+  const ch = CHRONICLE[idx];
+  $('story-sym').textContent = '📖';
+  $('story-title').textContent = `第 ${ch.chapter} 章：${ch.title}`;
+  $('story-sub').textContent = '王國編年史';
+  renderParagraphs(ch.body);
+  $('story-note').classList.add('hidden');
+  const nextBtn = $('btn-story-next');
+  const hasNext = idx + 1 < CHRONICLE.length && unlocked.has(idx + 1);
+  nextBtn.classList.toggle('hidden', !hasNext);
+  nextBtn.onclick = hasNext ? () => openChapter(idx + 1) : null;
+}
+
+// 通用彈窗（按鈕預設點擊後關閉；keepOpen: true 則由 onClick 自行決定）。回傳建立的按鈕陣列
+function showModal({ title, body = '', buttons = [] }) {
+  $('modal-title').textContent = title;
+  $('modal-body').innerHTML = body;
+  const wrap = $('modal-buttons');
+  wrap.innerHTML = '';
+  const created = [];
+  for (const b of buttons) {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (b.cls || '');
+    if (b.html) btn.innerHTML = b.html; else btn.textContent = b.text;
+    btn.addEventListener('click', () => {
+      if (!b.keepOpen) closeModal();
+      if (b.onClick) b.onClick();
+    });
+    wrap.appendChild(btn);
+    created.push(btn);
+  }
+  $('overlay').classList.remove('hidden');
+  return created;
+}
+
+function closeModal() {
+  $('overlay').classList.add('hidden');
+}
+
+
+/* =========================================================
+ * 畫面切換
+ * ========================================================= */
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+  if (name === 'levels') renderLevels();
+  if (name === 'gallery') renderGallery();
+  window.scrollTo(0, 0);
+}
+
+function openStory(idx) {
+  if (!unlocked.has(idx)) return;
+  galleryTab = 'pieces';
+  renderStory(idx);
+  showScreen('story');
+}
+
+function openChapter(idx) {
+  if (!unlocked.has(idx)) return;
+  galleryTab = 'chronicle';
+  renderChapter(idx);
+  showScreen('story');
+}
+
+function init() {
+  $('btn-pvp').addEventListener('click', () => startGame('pvp'));
+  $('btn-campaign').addEventListener('click', () => showScreen('levels'));
+  $('btn-gallery').addEventListener('click', () => { galleryTab = 'pieces'; showScreen('gallery'); });
+  $('btn-levels-home').addEventListener('click', () => showScreen('home'));
+  $('btn-gallery-home').addEventListener('click', () => showScreen('home'));
+  $('btn-story-back').addEventListener('click', () => showScreen('gallery'));
+  $('btn-quick-clear').addEventListener('click', openQuickClear);
+  document.querySelectorAll('#screen-gallery .tab').forEach(t => t.addEventListener('click', () => {
+    galleryTab = t.dataset.tab;
+    renderGallery();
+  }));
+
+  $('btn-restart').addEventListener('click', () => {
+    if (!game) return;
+    const { mode, levelIdx, playerColor, difficulty } = game;
+    confirmAction('確定要重新開始這一局嗎？目前的棋局將會消失。', () => startGame(mode, levelIdx, playerColor, difficulty));
+  });
+  $('btn-game-home').addEventListener('click', () => {
+    confirmAction('確定要返回首頁嗎？本局將不會保留。', () => { leaveGame(); showScreen('home'); });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
